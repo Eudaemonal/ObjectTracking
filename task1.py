@@ -45,23 +45,25 @@ def find_squares(img):
 
 
 
-
-
 if __name__ == "__main__":
 	video = cv2.VideoCapture('Video_sample.mp4')
 	frameNum = 0;
 	while(video.isOpened()):
 		ret, frame = video.read()
-
 		# Take first frame for matching
 		if(frameNum==0):
 			model = frame
-	    
+			cv2.imwrite("f048.png",model)
+		
+		# Convert RGB to grey scale for processing
+		img1 = cv2.cvtColor(model, cv2.COLOR_BGR2GRAY)
+		img2 = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
 		# Initiate ORB detector
 		orb = cv2.ORB_create()
 		# find the keypoints and descriptors with ORB
-		kp1, des1 = orb.detectAndCompute(model,None)
-		kp2, des2 = orb.detectAndCompute(frame,None)
+		kp1, des1 = orb.detectAndCompute(img1,None)
+		kp2, des2 = orb.detectAndCompute(img2,None)
 		# create BFMatcher object
 		bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 		# Match descriptors.
@@ -70,8 +72,7 @@ if __name__ == "__main__":
 		matches = sorted(matches, key = lambda x:x.distance)
 		# Draw first 10 matches.
 
-		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-		frame = auto_canny(gray)
+		
 
 		img3 = cv2.drawMatches(model,kp1,frame,kp2, matches[:50],None, flags=2)
 
@@ -79,6 +80,7 @@ if __name__ == "__main__":
 		if cv2.waitKey(1) & 0xFF == ord('q'):
 			break
 		frameNum+=1;
+		print(frameNum)
 
 	video.release()
 	cv2.destroyAllWindows()
