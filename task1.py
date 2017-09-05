@@ -47,14 +47,21 @@ def find_squares(img):
 
 if __name__ == "__main__":
 	video = cv2.VideoCapture('Video_sample.mp4')
-	frameNum = 0;
+
+	frameNum = 0
+	fps = video.get(cv2.CAP_PROP_FPS)
+
+
+
 	while(video.isOpened()):
 		ret, frame = video.read()
 		# Take first frame for matching
 		if(frameNum==0):
 			model = frame
-			cv2.imwrite("f048.png",model)
-		
+
+		#if(frameNum==0):
+		#	cv2.imwrite("f000.png", frame)
+
 		# Convert RGB to grey scale for processing
 		img1 = cv2.cvtColor(model, cv2.COLOR_BGR2GRAY)
 		img2 = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -71,8 +78,6 @@ if __name__ == "__main__":
 		# Sort them in the order of their distance.
 		matches = sorted(matches, key = lambda x:x.distance)
 		# Draw first 10 matches.
-
-		
 
 		img3 = cv2.drawMatches(model,kp1,frame,kp2, matches[:50],None, flags=2)
 
