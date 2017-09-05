@@ -18,31 +18,39 @@ def auto_canny(image, sigma=0.95):
 	return edged
 
 
-def angle_cos(p0, p1, p2):
-	d1, d2 = (p0-p1).astype('float'), (p2-p1).astype('float')
-	return abs( np.dot(d1, d2) / np.sqrt( np.dot(d1, d1)*np.dot(d2, d2) ) )
+def detect_item(img, show_contour, show_center):
+	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+	gray = cv2.equalizeHist(gray)
 
-def find_squares(img):
-	img = cv2.GaussianBlur(img, (5, 5), 0)
-	squares = []
-	for gray in cv2.split(img):
-		for thrs in range(0, 255, 26):
-			if thrs == 0:
-				bin = cv2.Canny(gray, 0, 50, apertureSize=5)
-				bin = cv2.dilate(bin, None)
-			else:
-				_retval, bin = cv2.threshold(gray, thrs, 255, cv2.THRESH_BINARY)
-			bin, contours, _hierarchy = cv2.findContours(bin, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-			for cnt in contours:
-				cnt_len = cv2.arcLength(cnt, True)
-				cnt = cv2.approxPolyDP(cnt, 0.02*cnt_len, True)
-				if len(cnt) == 4 and cv2.contourArea(cnt) > 1000 and cv2.isContourConvex(cnt):
-					cnt = cnt.reshape(-1, 2)
-					max_cos = np.max([angle_cos( cnt[i], cnt[(i+1) % 4], cnt[(i+2) % 4] ) for i in range(4)])
-					if max_cos < 0.1:
-						squares.append(cnt)
-	return squares
+	gray = cv2.GaussianBlur(gray,(5,5),0)
+	thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 375, 58)
 
+	edge = auto_canny(thresh)
+
+	(_, cnts, _) = cv2.findContours(edge.copy(), cv2.RETR_EXTERNAL,
+			cv2.CHAIN_APPROX_SIMPLE)
+
+	for c in cnts:
+		# compute the center of the contour, then detect the name of the
+		# shape using only the contour
+		M = cv2.moments(c)
+
+		if M['m00'] != 0:
+			cx = int(M['m10']/M['m00'])
+			cy = int(M['m01']/M['m00'])
+			area = cv2.contourArea(c)
+
+			if (24<area) & (area < 40960):
+				#print("(%3d, %3d): %3d"%(cx, cy, area))
+				if(show_center):
+					cv2.circle(img,(cx,cy), 1, (0,0,255), 6)
+					location = '('+str(cx)+', '+str(cy)+')'
+					cv2.putText(img,location,(cx,cy),cv2.FONT_HERSHEY_SIMPLEX,0.5, (255, 255, 255), 2)
+
+				if(show_contour):
+					cv2.drawContours(img, c, -1, (0, 255,255), 3)
+
+	return img
 
 
 if __name__ == "__main__":
@@ -56,15 +64,16 @@ if __name__ == "__main__":
 	while(video.isOpened()):
 		ret, frame = video.read()
 		# Take first frame for matching
+		frame= detect_item(frame, True, True)
+
 		if(frameNum==0):
 			model = frame
 
-		#if(frameNum==0):
-		#	cv2.imwrite("f000.png", frame)
-
+		
 		# Convert RGB to grey scale for processing
 		img1 = cv2.cvtColor(model, cv2.COLOR_BGR2GRAY)
 		img2 = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
 
 		# Initiate ORB detector
 		orb = cv2.ORB_create()
@@ -85,7 +94,6 @@ if __name__ == "__main__":
 		if cv2.waitKey(1) & 0xFF == ord('q'):
 			break
 		frameNum+=1;
-		print(frameNum)
 
 	video.release()
 	cv2.destroyAllWindows()

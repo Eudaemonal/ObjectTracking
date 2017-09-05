@@ -6,6 +6,7 @@ import imutils
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+from time import sleep
 
 
 def auto_canny(image, sigma=0.95):
