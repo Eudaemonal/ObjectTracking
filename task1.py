@@ -19,6 +19,7 @@ def auto_canny(image, sigma=0.95):
 
 
 def detect_item(img, show_contour, show_center):
+	num_item = 0
 	gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 	gray = cv2.equalizeHist(gray)
 
@@ -41,16 +42,17 @@ def detect_item(img, show_contour, show_center):
 			area = cv2.contourArea(c)
 
 			if (24<area) & (area < 40960):
+				num_item+=1
 				#print("(%3d, %3d): %3d"%(cx, cy, area))
 				if(show_center):
 					cv2.circle(img,(cx,cy), 1, (0,0,255), 6)
-					location = '('+str(cx)+', '+str(cy)+')'
+					location = 'Item #'+str(num_item)+' '+'('+str(cx)+', '+str(cy)+')'
 					cv2.putText(img,location,(cx,cy),cv2.FONT_HERSHEY_SIMPLEX,0.5, (255, 255, 255), 2)
 
 				if(show_contour):
 					cv2.drawContours(img, c, -1, (0, 255,255), 3)
 
-	return img
+	return img, num_item
 
 
 if __name__ == "__main__":
@@ -59,21 +61,19 @@ if __name__ == "__main__":
 	frameNum = 0
 	fps = video.get(cv2.CAP_PROP_FPS)
 
-
-
 	while(video.isOpened()):
 		ret, frame = video.read()
 		# Take first frame for matching
-		frame= detect_item(frame, True, True)
 
 		if(frameNum==0):
 			model = frame
-
 		
 		# Convert RGB to grey scale for processing
 		img1 = cv2.cvtColor(model, cv2.COLOR_BGR2GRAY)
 		img2 = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+		frame, num_item = detect_item(frame, True, True)
+		#print("Num: %d"%(num_item))
 
 		# Initiate ORB detector
 		orb = cv2.ORB_create()
@@ -86,9 +86,8 @@ if __name__ == "__main__":
 		matches = bf.match(des1,des2)
 		# Sort them in the order of their distance.
 		matches = sorted(matches, key = lambda x:x.distance)
-		# Draw first 10 matches.
-
-		img3 = cv2.drawMatches(model,kp1,frame,kp2, matches[:50],None, flags=2)
+		
+		img3 = cv2.drawMatches(model,kp1,frame,kp2, matches[:48],None, flags=2)
 
 		cv2.imshow('frame',img3)
 		if cv2.waitKey(1) & 0xFF == ord('q'):
